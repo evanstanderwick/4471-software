@@ -1,108 +1,111 @@
 #Authors: Drew DeLap and Evan Standerwick
 #Purpose: This program should provide Zoom with a 2-factor identification plug-in that allows the user to select their preferred 2-factor software (google vs duo) through a GUI
+from functools import partial
+from tkinter import *
+import os
 
-import sqlite3
-import tkinter as tk
+#sign in window
+def signIn():
+    global signInWindow
+    signInWindow = Toplevel(welcomeWindow)
+    signInWindow.title("Sign In")
 
-def create_connection(db):
-    conn = sqlite3.connect(db)
-    return conn
+    global usernameCheck, passwordCheck, signInUser, signInPass
+    usernameCheck = StringVar()
+    passwordCheck = StringVar()
 
+    Label(signInWindow, text="Username: ").grid(row=0, column=0)
+    signInUser = Entry(signInWindow, textvariable=usernameCheck).grid(row=0,column=1)
 
-def insert_user(conn, username, password, auth_type, auth_username):
-    # inserts a new user into the db
-    cur = conn.cursor()
-    cur.execute("INSERT INTO users VALUES (?, ?, ?, ?);", (username, password, auth_type, auth_username))
-    conn.commit()
+    Label(signInWindow, text="Password: ").grid(row=1, column=0)
+    signInPass = Entry(signInWindow, show='*', textvariable=passwordCheck).grid(row=1,column=1)
 
+    Button(signInWindow, text="Sign In", command=signInCheck).grid(row=2,column=0)
 
-def search_for_user(conn, username):
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM users WHERE username=?;", [username]) # this is probably insecure to SQLi, but that isn't really important for this demo
-    user = cur.fetchone()
-    return user # returns the first found tuple w/ desired username, or None if none found
+#sign up window
+def signUp():
+    global signUpWindow
+    signUpWindow = Toplevel(welcomeWindow)
+    signUpWindow.title("Sign Up")
 
-def sign_in(conn):
-    success = False
-    username = input("Zoom username: ")
-    password = input("(Fake) Zoom password: ")
+    global signUpUsername, signUpPass, username, password
+    username = StringVar()
+    password = StringVar()
 
-    # check if in db
-    user = search_for_user(conn, username)
-    if user == None or user[1] != password:
-        print("Access denied: incorrect username or password")
-    else:
-        # check w/ associated 2-factor account
-        if True: # 2-factor success. Just true right now for testing
-            success = True
+    Label(signUpWindow, text="Username: ").grid(row=0, column=0)
+    signUpUsername = Entry(signUpWindow, textvariable=username).grid(row=0,column=1)
+
+    Label(signUpWindow, text="Password: ").grid(row=1, column=0)
+    signUpPass = Entry(signUpWindow, show='*', textvariable=password).grid(row=1,column=1)
+
+    Button(signUpWindow, text="Sign Up", command=signUpUser).grid(row=2,column=0)
+
+#check if username and password are logged in file system
+def signInCheck():
+    user = usernameCheck.get()
+    passW = passwordCheck.get()
+    #signInUser.delete(0,END)
+    #signInPass.delete(0,END)
+
+    files = os.listdir()
+    if user in files:
+        userFile = open(user, "r")
+        validityCheck = userFile.read().splitlines()
+        if passW in validityCheck:
+            duoAuthentication()
         else:
-            print("Access denied by authenticator")
-
-    return success
-
-def sign_up(conn):
-    success = False
-    username = str(input("Zoom username: "))
-    password = str(input("(Fake) Zoom password: "))
-    authenticator_type = int(input("Authenticator type: Input 0 for Duo and 1 for Google Authenticator: "))
-    while authenticator_type != 0 and authenticator_type != 1:
-        authenticator_type = input("Enter either 0 for Duo or 1 for Google Authenticator: ")
-    if authenticator_type == 0:
-        authenticator_type = "duo"
-    elif authenticator_type == 1:
-        authenticator_type = "google"
-    authenticator_username = input("Enter your authenticator account username: ")
-
-    user = search_for_user(conn, username)
-    if user == None:
-        insert_user(conn, username, password, authenticator_type, authenticator_username)
-        # add one of the 2-factor accounts
-        # if that goes well, set success = true
-        success = 1 # here right now for testing
+            invalidPassword()
     else:
-        print("Error: That username already exists")
+        invalidUser()
+    
+#create file with username and password saved for future reference in the system
+def signUpUser():
+    user1 = username.get()
+    passW1 = password.get()
 
-    return success
+    file = open(user1, "w")
+    file.write(user1 + "\n")
+    file.write(passW1)
+    file.close()
+
+    #signUpUsername.delete(0,END)
+    #signUpPass.delete(0,END)
+
+    Button(signUpWindow, text="Next", command=duoAuthentication).grid(row=3, column=0)
+
+#PLEASE SETUP DUO APPLICATION IN THIS PORTAL IF GUI HELP NECESSARY SLACK ME
+def duoAuthentication():
+    #Please display duo window here
+    global duoScreen
+    duoScreen = Toplevel(welcomeWindow)
+    duoScreen.title("Duo Authentication")
+    Label(duoScreen, text="Duo HERE").grid(row=0,column=0)
+
+#Popup screen for when the password is wrong
+def invalidPassword():
+    global invalidPassWindow
+    invalidPassWindow = Toplevel(signInWindow)
+    invalidPassWindow.title("ERROR")
+    Label(invalidPassWindow, text="INCORRECT PASSWORD").grid(row=0,column=0)
+    Button(invalidPassWindow, text="Retry", command=signIn).grid(row=1,column=0)
+    Button(invalidPassWindow, text="Sign Up", command=signUp).grid(row=1,column=1)
+
+#Popup screen for when the password is wrong
+def invalidUser():
+    global invalidUserWindow
+    invalidUserWindow = Toplevel(signInWindow)
+    invalidUserWindow.title("ERROR")
+    Label(invalidUserWindow, text="INCORRECT USERNAME").grid(row=0,column=0)
+    Button(invalidUserWindow, text="Retry", command=signIn).grid(row=1,column=0)
+    Button(invalidUserWindow, text="Sign Up", command=signUp).grid(row=1,column=1)
 
 def main():
-    db_filename = "users.db" # will be in format [username,password,authenticator_type,authenticator_account_identifier]
-    conn = create_connection(db_filename)
+    global welcomeWindow
+    welcomeWindow = Tk()
+    welcomeWindow.title("Acount Login")
+    Button(text="Sign In", command=signIn).grid(row=0, column=0)
+    Button(text="Sign Up", command=signUp).grid(row=0, column=1)
+    welcomeWindow.mainloop()
 
-    #GUI construction
-    window = tk.Tk()
-    greeting = tk.Label(text="Welcome to Zoom 2 Factor Login")
-
-    window.rowconfigure(0, minsize=100, weight=1)
-    window.columnconfigure([0,1], minsize=100, weight = 1)
-
-    btn_signIn = tk.Button(master=window, text="Sign In", command=sign_in(conn))
-    btn_signIn.grid(row=0, column=0, sticky="nsew")
-    btn_signUp = tk.Button(master=window, text="Sign Up", command=sign_up(conn))
-    btn_signUp.grid(row=0, column=1, sticky="nsew")
-
-    window.mainloop()
-    
-
-    run = True
-    while run: # right now, just loops for ease of use. Maybe adjust this once the GUI goes in?
-        choice = int(input("Enter 0 to sign in, or 1 to sign up: "))
-        while (choice != 0) and (choice != 1):
-            choice = input("Error: Enter either 0 or 1: ")
-        if choice == 0:
-            success = sign_in(conn)
-        else: # choice = "1"
-            success = sign_up(conn)
-
-        if success:
-            print("Access granted")
-        else:
-            print("Access denied")
-        
-        run = input("Run again? (y/n): ")
-        if run != "y":
-            run = False
-
-    conn.close()
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
