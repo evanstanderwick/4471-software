@@ -4,6 +4,21 @@ from functools import partial
 from tkinter import *
 import os
 
+signInWindow = None
+welcomeWindow = None
+usernameCheck = None
+passwordCheck = None
+signInUser = None
+signInPass = None
+signUpWindow = None
+signUpUsername = None
+signUpPass = None
+username = None
+password = None
+duoScreen = None
+invalidPassWindow = None 
+invalidUserWindow = None
+
 #sign in window
 def signIn():
     global signInWindow
