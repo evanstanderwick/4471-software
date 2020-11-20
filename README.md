@@ -22,3 +22,7 @@ main.py - user interface for dual factor authentication, works through command l
 main2.y - copy of main, intended to house a GUI to go on top of the main but encountered technical issues and is not complete at this point
 session.txt
 users.db - database to house user information and help with lookup
+
+Execution:
+The main executable is main.py within the backend_authentication folder. This program needs five imports in order to function correctly which can be installed using pip install ______. 
+Another executable within this project is twoFactor.py with the help of tkinter and functools.
